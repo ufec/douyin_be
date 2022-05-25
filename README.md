@@ -12,6 +12,11 @@ go mod download
 ```shell
 go run main.go
 ```
+另外本项目使用`ffmpeg`实现获取视频缩略图，需要[自行安装](https://ffmpeg.org/)并配置环境变量
+```shell
+ffmpeg -v
+```
+不报错即可
 
 ## 目录结构
 ```
