@@ -16,5 +16,5 @@ var (
 	Config       *Conf
 	GormConfig   *gorm.Config
 	DB           *gorm.DB
-	ServerDomain = "http://192.168.137.1:8080/"
+	ServerDomain = "http://serverIp:port/" // 服务端地址，访问视频|图片资源
 )
