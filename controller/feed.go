@@ -25,7 +25,6 @@ func Feed(c *gin.Context) {
 		}
 	}
 	userId := UsersLoginInfo[token].ID
-	// 这里需要处理用户登陆的逻辑 (登陆了优先推荐他关注的人发布的视频)
 	feedVideoList := *videoService.Feed(startTime)
 	lenFeedVideoList := len(feedVideoList)
 	if lenFeedVideoList == 0 {
@@ -38,25 +37,26 @@ func Feed(c *gin.Context) {
 		return
 	}
 	nextTime := feedVideoList[lenFeedVideoList-1].CreatedAt.Unix() // 防止后续的排序影响
-	videoList := make([]Video, lenFeedVideoList)
-	for i := 0; i < lenFeedVideoList; i++ {
-		videoList[i] = Video{
-			Id: int64(feedVideoList[i].ID),
+	videoList := make([]Video, 0, lenFeedVideoList)
+	for _, video := range feedVideoList {
+		videoList = append(videoList, Video{
+			Id: int64(video.ID),
 			Author: User{
-				Id:            int64(feedVideoList[i].User.ID),
-				Name:          feedVideoList[i].User.UserName,
-				FollowCount:   int64(feedVideoList[i].User.FollowerCount),
-				FollowerCount: int64(feedVideoList[i].User.FollowerCount),
-				IsFollow:      IsFollow(userId, feedVideoList[i].User.ID),
+				Id:            int64(video.User.ID),
+				Name:          video.User.UserName,
+				FollowCount:   int64(video.User.FollowerCount),
+				FollowerCount: int64(video.User.FollowerCount),
+				IsFollow:      IsFollow(userId, video.User.ID),
 			},
-			PlayUrl:       config.ServerDomain + feedVideoList[i].PlayUrl,
-			CoverUrl:      config.ServerDomain + feedVideoList[i].CoverUrl,
-			FavoriteCount: feedVideoList[i].FavoriteCount,
-			CommentCount:  feedVideoList[i].CommentCount,
-			IsFavorite:    IsFavorite(userId, feedVideoList[i].ID),
-			Title:         feedVideoList[i].Description,
-		}
+			PlayUrl:       config.ServerDomain + video.PlayUrl,
+			CoverUrl:      config.ServerDomain + video.CoverUrl,
+			FavoriteCount: video.FavoriteCount,
+			CommentCount:  video.CommentCount,
+			IsFavorite:    IsFavorite(userId, video.ID),
+			Title:         video.Description,
+		})
 	}
+	// 这里需要处理用户登陆的逻辑 (登陆了优先推荐他关注的人发布的视频)
 	if userId == 0 {
 		sort.Slice(videoList, func(i, j int) bool { return videoList[i].Author.IsFollow || videoList[j].Author.IsFollow })
 	}
