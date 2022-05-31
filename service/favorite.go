@@ -79,7 +79,7 @@ func (s *FavoriteService) GetFavoriteListVid(userId uint) ([]uint, error) {
 //  @param videoId uint	当前视频ID
 //  @return bool
 func (s *FavoriteService) IsFavorite(userId, videoId uint) bool {
-	if errors.Is(config.DB.Where("user_id=? and video_id=?", userId, videoId).First(&model.Favorite{}).Error, gorm.ErrRecordNotFound) {
+	if errors.Is(config.DB.Where("user_id=? and video_id=? and status=1", userId, videoId).First(&model.Favorite{}).Error, gorm.ErrRecordNotFound) {
 		return false
 	}
 	return true
