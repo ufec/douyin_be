@@ -6,8 +6,10 @@ import (
 	"github.com/ufec/douyin_be/config"
 	"github.com/ufec/douyin_be/utils"
 	"net/http"
+	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"time"
 )
@@ -34,9 +36,17 @@ func Publish(c *gin.Context) {
 		})
 		return
 	}
+	saveDir, getPwdErr := os.Getwd()
+	if getPwdErr != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: getPwdErr.Error()})
+		return
+	}
 	nowTime := time.Now()
-	// 该文件最终保存的目录
-	saveDir := fmt.Sprintf("./public/%d/%d/%d/", nowTime.Year(), nowTime.Month(), nowTime.Day())
+	if runtime.GOOS == "windows" {
+		saveDir += fmt.Sprintf("\\public\\%d\\%d\\%d\\", nowTime.Year(), nowTime.Month(), nowTime.Day())
+	} else {
+		saveDir += fmt.Sprintf("/public/%d/%d/%d/", nowTime.Year(), nowTime.Month(), nowTime.Day())
+	}
 	// 不存在该目录则自动创建
 	if !utils.PathExists(saveDir) {
 		if mkDirErr := utils.MakeDir(saveDir); mkDirErr != nil {
