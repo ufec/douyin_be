@@ -57,7 +57,7 @@ func Feed(c *gin.Context) {
 		})
 	}
 	// 这里需要处理用户登陆的逻辑 (登陆了优先推荐他关注的人发布的视频)
-	if userId == 0 {
+	if userId != 0 {
 		sort.Slice(videoList, func(i, j int) bool { return videoList[i].Author.IsFollow || videoList[j].Author.IsFollow })
 	}
 	c.JSON(http.StatusOK, FeedResponse{
