@@ -23,10 +23,13 @@ func Feed(c *gin.Context) {
 		if parseIntRes, parseIntErr := strconv.ParseInt(lastTimestamp, 10, 64); parseIntErr == nil {
 			startTime = time.Unix(parseIntRes/1000, 0).Format("2006-01-02 15:04:05")
 		}
+	} else {
+		startTime = time.Now().Format("2006-01-02 15:04:05") // 不传默认为当前服务器时间
 	}
 	userId := UsersLoginInfo[token].ID
 	feedVideoList := *videoService.Feed(startTime)
 	lenFeedVideoList := len(feedVideoList)
+	println(lenFeedVideoList)
 	if lenFeedVideoList == 0 {
 		// 空数据处理
 		c.JSON(http.StatusOK, FeedResponse{
