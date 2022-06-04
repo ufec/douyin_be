@@ -7,7 +7,6 @@ import (
 	"github.com/ufec/douyin_be/utils"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -36,20 +35,20 @@ func Publish(c *gin.Context) {
 		})
 		return
 	}
-	saveDir, getPwdErr := os.Getwd()
+	pwd, getPwdErr := os.Getwd()
 	if getPwdErr != nil {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: getPwdErr.Error()})
 		return
 	}
-	nowTime := time.Now()
+	nowTime, absoluteSaveDir := time.Now(), ""
 	if runtime.GOOS == "windows" {
-		saveDir += fmt.Sprintf("\\public\\%d\\%d\\%d\\", nowTime.Year(), nowTime.Month(), nowTime.Day())
+		absoluteSaveDir += fmt.Sprintf(".\\public\\%d\\%d\\%d\\", nowTime.Year(), nowTime.Month(), nowTime.Day())
 	} else {
-		saveDir += fmt.Sprintf("/public/%d/%d/%d/", nowTime.Year(), nowTime.Month(), nowTime.Day())
+		absoluteSaveDir += fmt.Sprintf("./public/%d/%d/%d/", nowTime.Year(), nowTime.Month(), nowTime.Day())
 	}
 	// 不存在该目录则自动创建
-	if !utils.PathExists(saveDir) {
-		if mkDirErr := utils.MakeDir(saveDir); mkDirErr != nil {
+	if !utils.PathExists(absoluteSaveDir) {
+		if mkDirErr := utils.MakeDir(absoluteSaveDir); mkDirErr != nil {
 			fmt.Println(mkDirErr.Error())
 			c.JSON(http.StatusOK, Response{
 				StatusCode: 1,
@@ -61,11 +60,12 @@ func Publish(c *gin.Context) {
 	// 用户id_文件名_文件大小 拼接文件名 用于后续制作视频封面 提取文件后缀 后续对文件名进一步处理
 	fileName, fileExt := fmt.Sprintf("%d_%s_%d", userId, file.Filename, file.Size), filepath.Ext(file.Filename)
 	// 用时间戳 对拼接后的文件名进行 hmac_sha256 散列 输出bas464格式
-	saveFileName := utils.HmacSha256(fileName, strconv.FormatInt(nowTime.Unix(), 10), "base64")
+	saveFileName := utils.HmacSha256(fileName, strconv.FormatInt(nowTime.Unix(), 10), "hex")
 	// 最终保存的目录+文件名组成为最终该文件被存储的路径
-	saveVideoFile := filepath.Join(saveDir, saveFileName+fileExt)
+	absoluteSaveVideoFile := filepath.Join(absoluteSaveDir, saveFileName+fileExt)
+
 	// 保存上传的视频文件
-	if err := c.SaveUploadedFile(file, saveVideoFile); err != nil {
+	if err := c.SaveUploadedFile(file, filepath.Join(pwd, absoluteSaveVideoFile)); err != nil {
 		fmt.Println(err.Error())
 		c.JSON(http.StatusOK, Response{
 			StatusCode: 1,
@@ -74,8 +74,8 @@ func Publish(c *gin.Context) {
 		return
 	}
 	// 视频保存成功后 制作视频封面
-	saveThumbnailFile := path.Join(saveDir, saveFileName+"_thumbnail.png")
-	if err := utils.BuildThumbnailWithVideo(saveVideoFile, saveThumbnailFile); err != nil {
+	absoluteSaveThumbnailFile := filepath.Join(absoluteSaveDir, saveFileName+"_thumbnail.png")
+	if err := utils.BuildThumbnailWithVideo(filepath.Join(pwd, absoluteSaveVideoFile), filepath.Join(pwd, absoluteSaveThumbnailFile)); err != nil {
 		fmt.Println(err.Error())
 		c.JSON(http.StatusOK, Response{
 			StatusCode: 1,
@@ -84,7 +84,7 @@ func Publish(c *gin.Context) {
 		return
 	}
 	// 保存到数据库
-	if _, createVideoErr := videoService.Create(saveVideoFile, saveThumbnailFile, title, userId); createVideoErr != nil {
+	if _, createVideoErr := videoService.Create(absoluteSaveVideoFile, absoluteSaveThumbnailFile, title, userId); createVideoErr != nil {
 		fmt.Println(createVideoErr.Error())
 		c.JSON(http.StatusOK, Response{
 			StatusCode: 1,
