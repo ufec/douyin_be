@@ -15,18 +15,18 @@ type CommentListResponse struct {
 func CommentAction(c *gin.Context) {
 	userId := c.GetUint("userID")
 	if userId == 0 {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
+		Failed(c, "用户不存在")
 		return
 	}
 	actionTypeStr, videoIdStr := c.Query("action_type"), c.Query("video_id")
 	videoId, parseVideoId := strconv.ParseUint(videoIdStr, 10, 64)
 	if parseVideoId != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: parseVideoId.Error()})
+		Failed(c, parseVideoId.Error())
 		return
 	}
 	actionType, parseActionType := strconv.ParseUint(actionTypeStr, 10, 64)
 	if parseActionType != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: parseActionType.Error()})
+		Failed(c, parseActionType.Error())
 		return
 	}
 	// 发布评论
@@ -34,32 +34,32 @@ func CommentAction(c *gin.Context) {
 		//TODO:考虑注入问题
 		commentText := c.Query("comment_text")
 		if err := commentService.PostComment(userId, 0, uint(videoId), commentText); err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: err.Error()})
+			Failed(c, err.Error())
 			return
 		}
 		if _, err := videoService.UpdateNumberField(uint(videoId), 1, "CommentCount"); err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: err.Error()})
+			Failed(c, err.Error())
 			return
 		}
-		c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "success"})
+		Success(c, "操作成功")
 		return
 	}
 	// 删除评论
 	commentIdStr := c.Query("comment_id")
 	commentId, parseCommentIdErr := strconv.ParseUint(commentIdStr, 10, 64)
 	if parseCommentIdErr != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: parseCommentIdErr.Error()})
+		Failed(c, parseCommentIdErr.Error())
 		return
 	}
 	if err := commentService.DeleteComment(userId, 0, uint(videoId), uint(commentId)); err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: err.Error()})
+		Failed(c, err.Error())
 		return
 	}
 	if _, err := videoService.UpdateNumberField(uint(videoId), -1, "CommentCount"); err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: err.Error()})
+		Failed(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "success"})
+	Success(c, "操作成功")
 	return
 }
 
@@ -70,12 +70,12 @@ func CommentList(c *gin.Context) {
 	videoIdStr := c.Query("video_id")
 	videoId, parseVideoId := strconv.ParseUint(videoIdStr, 10, 64)
 	if parseVideoId != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: parseVideoId.Error()})
+		Failed(c, parseVideoId.Error())
 		return
 	}
 	comments, getCommentsErr := commentService.GetCommentListByVideoId(uint(videoId))
 	if getCommentsErr != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: getCommentsErr.Error()})
+		Failed(c, getCommentsErr.Error())
 		return
 	}
 	commentList := make([]Comment, 0, len(comments))

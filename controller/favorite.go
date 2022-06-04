@@ -11,69 +11,57 @@ import (
 func FavoriteAction(c *gin.Context) {
 	userId := c.GetUint("userID")
 	if userId == 0 {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
+		Failed(c, "用户不存在")
 		return
 	}
 	// 这里不应该从Query中取出用户ID
 	videoId, actionType := c.Query("video_id"), c.Query("action_type")
 	uintVideoId, parseUintErr := strconv.ParseUint(videoId, 10, 64)
 	if parseUintErr != nil {
-		c.JSON(http.StatusOK, Response{
-			StatusCode: 1,
-			StatusMsg:  "视频ID非法",
-		})
+		Failed(c, "视频ID非法")
 		return
 	}
 	if actionType != "1" && actionType != "2" {
-		c.JSON(http.StatusOK, Response{
-			StatusCode: 1,
-			StatusMsg:  "非法操作",
-		})
+		Failed(c, "非法操作")
 		return
 	}
 	ok, actionLikeErr := favoriteService.Action(userId, uint(uintVideoId), actionType)
 	if !ok || actionLikeErr != nil {
-		c.JSON(http.StatusOK, Response{
-			StatusCode: 1,
-			StatusMsg:  "操作失败",
-		})
+		Failed(c, "操作失败")
 		return
 	}
 	// 同步 FavoriteCount 字段值
 	if actionType == "1" {
 		if _, err := videoService.UpdateNumberField(uint(uintVideoId), 1, "FavoriteCount"); err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: err.Error()})
+			Failed(c, err.Error())
 			return
 		}
 	} else {
 		if _, err := videoService.UpdateNumberField(uint(uintVideoId), -1, "FavoriteCount"); err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: err.Error()})
+			Failed(c, err.Error())
 			return
 		}
 	}
-	c.JSON(http.StatusOK, Response{
-		StatusCode: 0,
-		StatusMsg:  "success",
-	})
+	Success(c, "操作成功")
 }
 
 // FavoriteList all users have same favorite video list
 func FavoriteList(c *gin.Context) {
 	userId := c.GetUint("userID")
 	if userId == 0 {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
+		Failed(c, "用户不存在")
 		return
 	}
 	// 根据用户ID 取出该用户点赞的所有视频ID
 	videoIds, getFLVErr := favoriteService.GetFavoriteListVid(userId)
 	if getFLVErr != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: getFLVErr.Error()})
+		Failed(c, getFLVErr.Error())
 		return
 	}
 	// 根据点赞过的视频ID 取出所有对应的视频信息
 	videoInfoList, getVIBIErr := videoService.GetVideoInfoByIds(videoIds)
 	if getVIBIErr != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: getVIBIErr.Error()})
+		Failed(c, getVIBIErr.Error())
 		return
 	}
 	favoriteVideoList := make([]Video, 0, len(videoInfoList))

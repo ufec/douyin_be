@@ -23,21 +23,18 @@ func Publish(c *gin.Context) {
 	userId := c.GetUint("userID")
 	// 默认值为0 主键ID不为0 则说明用户不存在
 	if userId == 0 {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "不存在该用户"})
+		Failed(c, "不存在该用户")
 		return
 	}
 	title := c.PostForm("title")
 	file, getUploadFileErr := c.FormFile("data")
 	if getUploadFileErr != nil {
-		c.JSON(http.StatusOK, Response{
-			StatusCode: 1,
-			StatusMsg:  getUploadFileErr.Error(),
-		})
+
 		return
 	}
 	pwd, getPwdErr := os.Getwd()
 	if getPwdErr != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: getPwdErr.Error()})
+		Failed(c, getPwdErr.Error())
 		return
 	}
 	nowTime, absoluteSaveDir := time.Now(), ""
@@ -50,10 +47,7 @@ func Publish(c *gin.Context) {
 	if !utils.PathExists(absoluteSaveDir) {
 		if mkDirErr := utils.MakeDir(absoluteSaveDir); mkDirErr != nil {
 			fmt.Println(mkDirErr.Error())
-			c.JSON(http.StatusOK, Response{
-				StatusCode: 1,
-				StatusMsg:  "创建目录失败",
-			})
+			Failed(c, "创建目录失败")
 			return
 		}
 	}
@@ -67,35 +61,23 @@ func Publish(c *gin.Context) {
 	// 保存上传的视频文件
 	if err := c.SaveUploadedFile(file, filepath.Join(pwd, absoluteSaveVideoFile)); err != nil {
 		fmt.Println(err.Error())
-		c.JSON(http.StatusOK, Response{
-			StatusCode: 1,
-			StatusMsg:  "保存视频文件失败",
-		})
+		Failed(c, "保存视频文件失败")
 		return
 	}
 	// 视频保存成功后 制作视频封面
 	absoluteSaveThumbnailFile := filepath.Join(absoluteSaveDir, saveFileName+"_thumbnail.png")
 	if err := utils.BuildThumbnailWithVideo(filepath.Join(pwd, absoluteSaveVideoFile), filepath.Join(pwd, absoluteSaveThumbnailFile)); err != nil {
 		fmt.Println(err.Error())
-		c.JSON(http.StatusOK, Response{
-			StatusCode: 1,
-			StatusMsg:  "封面图生成失败",
-		})
+		Failed(c, "封面图生成失败")
 		return
 	}
 	// 保存到数据库
 	if _, createVideoErr := videoService.Create(absoluteSaveVideoFile, absoluteSaveThumbnailFile, title, userId); createVideoErr != nil {
 		fmt.Println(createVideoErr.Error())
-		c.JSON(http.StatusOK, Response{
-			StatusCode: 1,
-			StatusMsg:  "数据保存失败",
-		})
+		Failed(c, "数据保存失败")
 		return
 	}
-	c.JSON(http.StatusOK, Response{
-		StatusCode: 0,
-		StatusMsg:  "视频发布成功",
-	})
+	Success(c, "视频发布成功")
 }
 
 // PublishList all users have same publish video list

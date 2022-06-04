@@ -1,6 +1,10 @@
 package controller
 
-import "github.com/ufec/douyin_be/service"
+import (
+	"github.com/gin-gonic/gin"
+	"github.com/ufec/douyin_be/service"
+	"net/http"
+)
 
 type Response struct {
 	StatusCode int32  `json:"status_code"`
@@ -49,3 +53,11 @@ var (
 	relationService service.RelationService
 	commentService  service.CommentService
 )
+
+func Success(c *gin.Context, msg string) {
+	c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: msg})
+}
+
+func Failed(c *gin.Context, msg string) {
+	c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: msg})
+}

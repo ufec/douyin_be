@@ -17,55 +17,55 @@ type UserListResponse struct {
 func RelationAction(c *gin.Context) {
 	fromUserId := c.GetUint("userID")
 	if fromUserId == 0 {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
+		Failed(c, "用户不存在")
 		return
 	}
 	toUserIdStr, actionTypeStr := c.Query("to_user_id"), c.Query("action_type")
 	toUserId, parseUintErr := strconv.ParseUint(toUserIdStr, 10, 64)
 	if parseUintErr != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "非法字段 to_user_id"})
+		Failed(c, "非法字段 to_user_id")
 		return
 	}
 	// 自己不能关注/取消关注自己
 	if toUserId == uint64(fromUserId) {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "不能关注自己"})
+		Failed(c, "不能关注自己")
 		return
 	}
 	// actionType 1执行关注操作 2执行取消关注操作
 	actionType, parseIntErr := strconv.ParseInt(actionTypeStr, 10, 64)
 	if parseIntErr != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "非法字段 action_type"})
+		Failed(c, "非法字段 action_type")
 		return
 	}
 	// 被操作人是否存在
 	if _, getUserInfoErr := userService.GetUserInfoById(uint(toUserId)); getUserInfoErr != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: getUserInfoErr.Error()})
+		Failed(c, getUserInfoErr.Error())
 		return
 	}
 	var diff int
 	if actionType == 1 {
 		if _, err := relationService.FollowUser(fromUserId, uint(toUserId)); err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: err.Error()})
+			Failed(c, err.Error())
 			return
 		}
 		diff = 1
 	} else {
 		if _, err := relationService.UnFollowUser(fromUserId, uint(toUserId)); err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: err.Error()})
+			Failed(c, err.Error())
 			return
 		}
 		diff = -1
 	}
 	// 增加 / 减少 关注取消关注 都是同步的
 	if _, err := userService.UpdateFollowCountOrFollowerCountById(fromUserId, diff, "FollowCount"); err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: err.Error()})
+		Failed(c, err.Error())
 		return
 	}
 	if _, err := userService.UpdateFollowCountOrFollowerCountById(uint(toUserId), diff, "FollowerCount"); err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: err.Error()})
+		Failed(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "success"})
+	Success(c, "操作成功")
 	return
 }
 
@@ -73,11 +73,11 @@ func RelationAction(c *gin.Context) {
 func FollowList(c *gin.Context) {
 	userId := c.GetUint("userID")
 	if userId == 0 {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
+		Failed(c, "用户不存在")
 		return
 	}
 	if followList, getFollowErr := getFollowListOrFansList(userId, "follow"); getFollowErr != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: getFollowErr.Error()})
+		Failed(c, getFollowErr.Error())
 	} else {
 		c.JSON(http.StatusOK, struct {
 			Response
@@ -93,11 +93,11 @@ func FollowList(c *gin.Context) {
 func FollowerList(c *gin.Context) {
 	userId := c.GetUint("userID")
 	if userId == 0 {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
+		Failed(c, "用户不存在")
 		return
 	}
 	if followerList, getFollowErr := getFollowListOrFansList(userId, "follower"); getFollowErr != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: getFollowErr.Error()})
+		Failed(c, getFollowErr.Error())
 	} else {
 		c.JSON(http.StatusOK, struct {
 			Response

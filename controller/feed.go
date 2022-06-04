@@ -29,7 +29,6 @@ func Feed(c *gin.Context) {
 	userId := UsersLoginInfo[token].ID
 	feedVideoList := *videoService.Feed(startTime)
 	lenFeedVideoList := len(feedVideoList)
-	println(lenFeedVideoList)
 	if lenFeedVideoList == 0 {
 		// 空数据处理
 		c.JSON(http.StatusOK, FeedResponse{
