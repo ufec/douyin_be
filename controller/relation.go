@@ -71,10 +71,20 @@ func RelationAction(c *gin.Context) {
 
 // FollowList all users have same followed list
 func FollowList(c *gin.Context) {
-	userId := c.GetUint("userID")
-	if userId == 0 {
+	loginUserId := c.GetUint("userID")
+	toUserIdStr := c.Query("user_id")
+	toUserId, parseUintErr := strconv.ParseUint(toUserIdStr, 10, 64)
+	if parseUintErr != nil {
+		Failed(c, parseUintErr.Error())
+		return
+	}
+	if loginUserId == 0 {
 		Failed(c, "用户不存在")
 		return
+	}
+	userId := loginUserId
+	if toUserId != 0 {
+		userId = uint(toUserId)
 	}
 	if followList, getFollowErr := getFollowListOrFansList(userId, "follow"); getFollowErr != nil {
 		Failed(c, getFollowErr.Error())
@@ -91,10 +101,20 @@ func FollowList(c *gin.Context) {
 
 // FollowerList all users have same follower list
 func FollowerList(c *gin.Context) {
-	userId := c.GetUint("userID")
-	if userId == 0 {
+	loginUserId := c.GetUint("userID")
+	toUserIdStr := c.Query("user_id")
+	toUserId, parseUintErr := strconv.ParseUint(toUserIdStr, 10, 64)
+	if parseUintErr != nil {
+		Failed(c, parseUintErr.Error())
+		return
+	}
+	if loginUserId == 0 {
 		Failed(c, "用户不存在")
 		return
+	}
+	userId := loginUserId
+	if toUserId != 0 {
+		userId = uint(toUserId)
 	}
 	if followerList, getFollowErr := getFollowListOrFansList(userId, "follower"); getFollowErr != nil {
 		Failed(c, getFollowErr.Error())
