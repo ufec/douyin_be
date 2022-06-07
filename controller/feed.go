@@ -21,6 +21,9 @@ func Feed(c *gin.Context) {
 	startTime := ""
 	if lastTimestamp != "" {
 		if parseIntRes, parseIntErr := strconv.ParseInt(lastTimestamp, 10, 64); parseIntErr == nil {
+			if parseIntRes > 1000000000000 {
+				parseIntRes /= 1000
+			}
 			startTime = time.Unix(parseIntRes, 0).Format("2006-01-02 15:04:05")
 		}
 	} else {
